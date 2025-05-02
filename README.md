@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Forex Projesi - Teknik Dokümantasyon
 
 ## Genel Bakış
@@ -97,3 +98,6 @@ Commit ve push işlemi için aşağıdaki komutları kullanabilirsiniz:
 git add README.md
 git commit -m "README.md güncellendi: Türkçe teknik dokümantasyon eklendi"
 git push origin main
+=======
+# Forex_Project
+>>>>>>> 51d3eb4484373fd7f64d668547ce302f25df9199
