@@ -1,0 +1,5 @@
+# Logstash temel ayarları
+http.host: "0.0.0.0"
+
+# X-Pack Monitoring'i devre dışı bırakıyoruz
+xpack.monitoring.enabled: false 

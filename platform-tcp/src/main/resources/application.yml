@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+tcp:
+  streaming:
+    port: 8081
+    message-interval: 1000
+    message-count: 10
+    drift-percentage: 1.0
+    rates:
+      - PF1_USDTRY
+      - PF1_EURUSD
+      - PF1_GBPUSD
+    initial-bid:
+      PF1_USDTRY: 34.0
+      PF1_EURUSD: 1.05
+      PF1_GBPUSD: 0.80
+    initial-ask:
+      PF1_USDTRY: 35.0
+      PF1_EURUSD: 1.07
+      PF1_GBPUSD: 0.82
+    welcome-message: "Welcome to the Forex TCP Server. Available commands: subscribe|RATE, unsubscribe|RATE"

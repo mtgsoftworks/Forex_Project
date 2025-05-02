@@ -1,0 +1,114 @@
+version: '2.4'
+services:
+  redis:
+    image: redis:7.0.11
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    ports:
+      - "32181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      mynetwork: {}
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    networks:
+      mynetwork: {}
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=8465
+      - POSTGRES_DB=forexdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  opensearch-node1:
+    container_name: opensearch-node1
+    image: opensearchproject/opensearch:2.11.1
+    environment:
+      - discovery.type=single-node
+      - "DISABLE_SECURITY_PLUGIN=true"
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -E '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      opensearch-net:
+        aliases:
+          - elasticsearch
+
+  opensearch-dashboards:
+    container_name: opensearch-dashboards
+    image: opensearchproject/opensearch-dashboards:2.11.1
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://opensearch-node1:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+    ports:
+      - "5601:5601"
+    networks:
+      - opensearch-net
+    depends_on:
+      opensearch-node1:
+        condition: service_healthy
+
+  logstash:
+    container_name: logstash
+    image: docker.elastic.co/logstash/logstash:7.17.3
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - "./kafka-consumer/logs/kafka-consumer:/logs/kafka-consumer"
+      - "./platform-rest/logs/platform-rest:/logs/platform-rest"
+      - "./platform-tcp/logs/platform-tcp:/logs/platform-tcp"
+      - "./coordinator/logs/coordinator:/logs/coordinator"
+    networks:
+      - opensearch-net
+    depends_on:
+      opensearch-node1:
+        condition: service_healthy
+    command: /bin/sh -c "bin/logstash-plugin install logstash-output-opensearch && exec logstash"
+
+volumes:
+  pgdata:
+  opensearch-data:
+
+networks:
+  mynetwork:
+    driver: bridge
+  opensearch-net:
+    driver: bridge

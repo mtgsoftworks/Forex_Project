@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+  <Properties>
+    <!-- Bu alana servis ismini yazıyoruz. Örneğin; coordinator -->
+    <Property name="LOG_PATH">${sys:user.dir}/logs/kafka-consumer</Property>
+  </Properties>
+  <Appenders>
+    <!-- Konsola log yazabilmek için Console appender tanımı -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+    </Console>
+    <RollingFile name="FileAppender"
+                 fileName="${LOG_PATH}/app.log"
+                 filePattern="${LOG_PATH}/app-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1"/>
+        <SizeBasedTriggeringPolicy size="10 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="10"/>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="info">
+      <!-- Tanımlı "Console" appender'ına referans veriyoruz -->
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>

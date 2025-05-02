@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+          <groupId>com.example.forexproject</groupId>
+          <artifactId>forexproject</artifactId>
+          <version>0.0.1-SNAPSHOT</version>
+          <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <groupId>com.example.forexproject</groupId>
+    <artifactId>platform-tcp</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+     <packaging>jar</packaging>
+  <dependencies>
+    <!-- Spring Boot Starter: logback'in otomatik eklenmesini engellemek için logging hariç -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+      <exclusions>
+         <exclusion>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+         </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <!-- Log4j2 kullanımı için -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-log4j2</artifactId>
+    </dependency>
+  </dependencies>
+
+    <properties>
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
+    </properties>
+
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.0.0-M7</version>
+        </plugin>
+      </plugins>
+    </build>
+
+</project>

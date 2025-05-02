@@ -1,0 +1,23 @@
+# Çok aşamalı mimari kullanarak Coordinator servisinin derlenip çalıştırılması
+
+# Build Aşaması
+FROM maven:3.9.3-eclipse-temurin-23 AS build
+WORKDIR /app
+
+# Tüm proje dosyalarını kopyalıyoruz (parent pom, diğer modüller vs.)
+COPY . .
+
+# Parent POM'u yükleyerek yerel Maven deposuna ekliyoruz (non-recursive olarak)
+RUN mvn install -N -DskipTests
+
+# Coordinator modülünü, bağlı olduğu modüllerle birlikte derliyoruz
+RUN mvn clean package -pl coordinator -am -DskipTests
+
+# Runtime Aşaması
+FROM eclipse-temurin:23-jdk
+WORKDIR /app
+
+# Derleme aşamasından oluşturulan coordinator jar dosyasını kopyalıyoruz
+COPY --from=build /app/coordinator/target/coordinator-1.0-SNAPSHOT.jar app.jar
+EXPOSE 8090
+CMD ["java", "-jar", "app.jar"] 

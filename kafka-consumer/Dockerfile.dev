@@ -1,0 +1,21 @@
+# Çok aşamalı mimari kullanarak Kafka-consumer servisinin derlenip çalıştırılması
+
+# Build aşaması
+FROM maven:3.9.3-eclipse-temurin-23 AS build
+WORKDIR /app
+
+# Tüm proje dosyalarını kopyalıyoruz (parent pom, common ve diğer modüller dahil)
+COPY . .
+
+# kafka-consumer modülünü, onunla birlikte gereken diğer (common gibi) modülleri de derliyoruz
+RUN mvn clean package -pl kafka-consumer -am -DskipTests
+
+# Runtime aşaması
+FROM eclipse-temurin:23-jdk
+WORKDIR /app
+
+# Derleme aşamasından; kafka-consumer JAR'ını kopyalıyoruz.
+COPY --from=build /app/kafka-consumer/target/kafka-consumer-1.0-SNAPSHOT.jar app.jar
+
+EXPOSE 8100
+CMD ["java", "-jar", "app.jar"] 

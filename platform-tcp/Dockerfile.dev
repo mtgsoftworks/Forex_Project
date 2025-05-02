@@ -1,0 +1,18 @@
+# Build aşaması
+FROM maven:3.9.3-eclipse-temurin-23 AS build
+WORKDIR /app
+
+# Tüm proje dosyalarını kopyalayarak parent POM ve modül dosyaları dahil ediliyor
+COPY . .
+
+# Yalnızca platform-tcp modülünü ve gerekli bağımlılıkları (-am ile) derliyoruz
+RUN mvn clean package -pl platform-tcp -am -DskipTests
+
+# Runtime aşaması
+FROM eclipse-temurin:23-jdk
+WORKDIR /app
+
+# Oluşan platform-tcp JAR dosyasını alıyoruz; jar isminin pom.xml'deki artifactId ve versiyona uygun olduğundan emin olun
+COPY --from=build /app/platform-tcp/target/platform-tcp-1.0-SNAPSHOT.jar app.jar
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]

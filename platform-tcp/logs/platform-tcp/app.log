@@ -1,0 +1,6 @@
+2025-05-03 01:35:19.024 [Platform-Tcp] [Thread-1] INFO  com.example.forexproject.TcpServer - TCP Server started on port 8080
+2025-05-03 01:35:21.257 [Platform-Tcp] [main] INFO  com.example.forexproject.TcpServerTest - Starting TcpServerTest using Java 23.0.1 with PID 19880 (started by MTG in C:\Users\MTG\Desktop\forexproject_v0.4.8\platform-tcp)
+2025-05-03 01:35:21.260 [Platform-Tcp] [main] INFO  com.example.forexproject.TcpServerTest - No active profile set, falling back to 1 default profile: "default"
+2025-05-03 01:35:21.762 [Platform-Tcp] [main] INFO  com.example.forexproject.TcpServerTest - Started TcpServerTest in 0.715 seconds (process running for 5.722)
+2025-05-03 01:35:22.288 [Platform-Tcp] [Thread-1] INFO  com.example.forexproject.TcpServer - Client connected: /127.0.0.1:10072
+2025-05-03 01:35:22.290 [Platform-Tcp] [Thread-3] INFO  com.example.forexproject.TcpServer - Received command from /127.0.0.1:10072: ping

@@ -1,0 +1,38 @@
+server:
+  port: ${SERVER_PORT:8090}
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:29092
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your_email@example.com  # update securely
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp:
+        auth: true
+        starttls:
+          enable: true
+logging:
+  level:
+    org.springframework.mail: DEBUG
+    root: INFO
+
+calculation:
+  formulas:
+    path: classpath:formulas/*.groovy
+  script-engine: groovy
+
+pf2:
+  rest:
+    base-url: http://localhost:8080/api/rates/
+    poll-interval: 1000
+
+coordinator:
+  kafka-topic:
+    forex: forex_topic

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+          <groupId>com.example.forexproject</groupId>
+          <artifactId>forexproject</artifactId>
+          <version>0.0.1-SNAPSHOT</version>
+          <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <groupId>com.example.forexproject</groupId>
+    <artifactId>coordinator</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+     <packaging>jar</packaging>
+  <dependencies>
+    <!-- Spring Boot Starter: varsayılan loglama (Logback) hariç tutuluyor -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+      <exclusions>
+         <exclusion>
+           <groupId>org.springframework.boot</groupId>
+           <artifactId>spring-boot-starter-logging</artifactId>
+         </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <!-- Spring Boot Starter Web: varsayılan loglama hariç -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+      <exclusions>
+          <exclusion>
+             <groupId>org.springframework.boot</groupId>
+             <artifactId>spring-boot-starter-logging</artifactId>
+          </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <!-- Kafka Producer -->
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
+    
+    <!-- Spring Boot Starter Data Redis: varsayılan loglama hariç -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+      <exclusions>
+         <exclusion>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+         </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <!-- Log4j2 kullanımı için -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-log4j2</artifactId>
+    </dependency>
+    
+    <!-- Spring Boot Starter Mail (loglama etkilenmez, eklenmeye devam edebilir) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-mail</artifactId>
+    </dependency>
+    
+    <!-- Diğer bağımlılıklarınız -->
+    <dependency>
+      <groupId>com.example.forexproject</groupId>
+      <artifactId>common</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+    <properties>
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
+    </properties>
+
+</project>

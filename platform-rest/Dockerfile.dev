@@ -1,0 +1,20 @@
+# Çok aşamalı mimari kullanarak uygulamanın derlenip çalıştırılması
+
+# Build aşaması
+FROM maven:3.9.3-eclipse-temurin-23 AS build
+WORKDIR /app
+
+# Tüm proje dosyalarını kopyalıyoruz (kökteki pom.xml ve diğer modüller dahil)
+COPY . .
+
+# Yalnızca platform-rest modülünü ve ona bağlı modülleri derliyoruz
+RUN mvn clean package -pl platform-rest -am -DskipTests
+
+# Runtime aşaması
+FROM eclipse-temurin:23-jdk
+WORKDIR /app
+
+# Derleme aşamasında oluşturulan platform-rest JAR dosyasını kopyalıyoruz
+COPY --from=build /app/platform-rest/target/platform-rest-1.0-SNAPSHOT.jar app.jar
+EXPOSE 8081
+CMD ["java", "-jar", "app.jar"] 
