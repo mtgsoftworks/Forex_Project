@@ -18,9 +18,15 @@ spring:
         auth: true
         starttls:
           enable: true
+  main:
+    log-startup-info: false
+
 logging:
   level:
     org.springframework.mail: DEBUG
+    org.springframework.boot.autoconfigure: ERROR
+    org.springframework.boot.autoconfigure.condition: ERROR
+    org.springframework.boot.autoconfigure.web: ERROR
     root: INFO
 
 calculation:
@@ -32,7 +38,22 @@ pf2:
   rest:
     base-url: http://localhost:8080/api/rates/
     poll-interval: 1000
+    enabled: false
+    manual-mode: false
+
+pf1:
+  tcp:
+    host: localhost
+    port: 8081
+    enabled: false
 
 coordinator:
   kafka-topic:
     forex: forex_topic
+  providers:
+    classes:
+      - com.example.forexproject.coordinator.provider.PF2RestProvider
+
+sample:
+  provider:
+    enabled: false

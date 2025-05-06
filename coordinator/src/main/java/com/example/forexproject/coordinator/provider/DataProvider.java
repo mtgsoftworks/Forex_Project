@@ -8,6 +8,7 @@ import com.example.forexproject.coordinator.CoordinatorCallback;
  * to the {@link com.example.forexproject.coordinator.service.CoordinatorService}
  * via the supplied {@link CoordinatorCallback}.
  */
+// Removed duplicate package declaration
 public interface DataProvider extends Runnable {
 
     /* Inject callback reference before the provider is started */

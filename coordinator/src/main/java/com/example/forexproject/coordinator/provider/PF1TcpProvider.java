@@ -1,11 +1,14 @@
 package com.example.forexproject.coordinator.provider;
 
-import com.example.forexproject.coordinator.config.TcpStreamingProperties;
+import com.example.forexproject.coordinator.provider.DataProvider;
+
+import com.example.forexproject.coordinator.config.PF1TcpProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.example.forexproject.coordinator.CoordinatorCallback;
 import com.example.forexproject.model.Rate;
+import com.example.forexproject.model.RateFields;
 import com.example.forexproject.model.RateStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,6 +19,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * DataProvider implementation that connects to PF1 TCP Streaming simulator.
@@ -28,7 +32,7 @@ public class PF1TcpProvider implements DataProvider {
     private static final Logger logger = LogManager.getLogger(PF1TcpProvider.class);
 
     @Autowired
-    private TcpStreamingProperties props;
+    private PF1TcpProperties props;
 
     private CoordinatorCallback callback;
     private volatile boolean running;
@@ -38,6 +42,8 @@ public class PF1TcpProvider implements DataProvider {
     private BufferedReader reader;
 
     private final Set<String> subscribedRates = new HashSet<>();
+    // Track which symbols have been availed to decide update vs available
+    private final Set<String> availableRates = ConcurrentHashMap.newKeySet();
 
     @Override
     public void setCallback(CoordinatorCallback callback) {
@@ -47,7 +53,7 @@ public class PF1TcpProvider implements DataProvider {
     @Override
     public void connect(String platformName, String userId, String password) {
         try {
-            String host = "127.0.0.1"; // Optionally make this configurable via TcpStreamingProperties
+            String host = props.getHost();
             int port = props.getPort();
             socket = new Socket(host, port);
             writer = new PrintWriter(socket.getOutputStream(), true);
@@ -96,9 +102,16 @@ public class PF1TcpProvider implements DataProvider {
 
     @Override
     public void startProvider() {
+        if (!props.isEnabled()) {
+            logger.info("PF1TcpProvider auto-start disabled");
+            return;
+        }
         running = true;
-        // Connect on start
         connect("PF1", "user", "pass");
+        // Subscribe to configured rates
+        for (String rate : props.getRates()) {
+            subscribe("PF1", rate);
+        }
         new Thread(this, "PF1TcpProvider-Reader").start();
     }
 
@@ -122,14 +135,18 @@ public class PF1TcpProvider implements DataProvider {
 
                 if (!subscribedRates.contains(symbol)) continue;
 
-                // First time arrival => available
+                // First time arrival => available; thereafter => update
                 if (callback != null) {
                     Rate rate = new Rate();
                     rate.setRateName(symbol);
                     rate.setBid(bid);
                     rate.setAsk(ask);
                     rate.setTimestamp(timestamp);
-                    callback.onRateAvailable("PF1", symbol, rate);
+                    if (availableRates.add(symbol)) {
+                        callback.onRateAvailable("PF1", symbol, rate);
+                    } else {
+                        callback.onRateUpdate("PF1", symbol, new RateFields(rate.getBid(), rate.getAsk()));
+                    }
                 }
             }
         } catch (Exception e) {

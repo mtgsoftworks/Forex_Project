@@ -17,4 +17,8 @@ public interface RateRepository extends JpaRepository<RateEntity, Long> {
 
     @Query("SELECT r FROM RateEntity r WHERE r.rateName = ?1 ORDER BY r.rateUpdateTime DESC")
     List<RateEntity> findLatestRateByRateName(String rateName, Pageable pageable);
+
+    // New method to fetch latest rate entities for a given rate name
+    @Query("SELECT r FROM RateEntity r WHERE r.rateName = :rateName ORDER BY r.dbUpdateTime DESC")
+    List<RateEntity> findLatestByRateName(@Param("rateName") String rateName, Pageable pageable);
 }

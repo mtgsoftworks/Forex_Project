@@ -23,6 +23,8 @@ public class RateSimulationProperties {
         "PF2_GBPUSD", 0.82
     );
     private double driftPercentage = 1.0;
+    // Interval between events when streaming rates (milliseconds)
+    private long pollInterval = 1000;
 
     public List<String> getRates() { return rates; }
     public void setRates(List<String> rates) { this.rates = rates; }
@@ -32,4 +34,6 @@ public class RateSimulationProperties {
     public void setInitialAsk(Map<String, Double> initialAsk) { this.initialAsk = initialAsk; }
     public double getDriftPercentage() { return driftPercentage; }
     public void setDriftPercentage(double driftPercentage) { this.driftPercentage = driftPercentage; }
+    public long getPollInterval() { return pollInterval; }
+    public void setPollInterval(long pollInterval) { this.pollInterval = pollInterval; }
 }

@@ -13,6 +13,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Coordinator service for handling alarms.
+ */
 @Service
 public class AlarmService {
     private static final Logger logger = LogManager.getLogger(AlarmService.class);

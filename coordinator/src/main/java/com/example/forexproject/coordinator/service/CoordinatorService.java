@@ -9,19 +9,24 @@ import com.example.forexproject.model.RateStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.example.forexproject.coordinator.service.CalculationService;
 import com.example.forexproject.coordinator.service.AlarmService;
+import com.example.forexproject.coordinator.config.ProviderProperties;
+import com.example.forexproject.coordinator.config.Pf2RestProperties;
+import com.example.forexproject.coordinator.config.CoordinatorKafkaProperties;
+import com.example.forexproject.coordinator.provider.PF2RestProvider;
 
 @Service
 public class CoordinatorService implements CoordinatorCallback {
@@ -33,6 +38,7 @@ public class CoordinatorService implements CoordinatorCallback {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+    private StreamOperations<String, String, String> streamOps;
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -43,12 +49,19 @@ public class CoordinatorService implements CoordinatorCallback {
     @Autowired
     private AlarmService alarmService;
 
-    @Value("${kafka.topic.forex:forex_topic}")
-    private String forexTopic;
-
-    // Autowired Spring-managed data providers
     @Autowired
     private List<DataProvider> dataProviders;
+
+    @Autowired
+    private ProviderProperties providerProperties;
+    @Autowired
+    private Pf2RestProperties pf2Props;
+    @Autowired
+    private CoordinatorKafkaProperties kafkaProps;
+
+    // Track PF2 error start times per symbol
+    private Map<String, LocalDateTime> pf2ErrorStartMap = new ConcurrentHashMap<>();
+    private static final long PF2_ERROR_THRESHOLD_SECONDS = 60;
 
     @PostConstruct
     public void initDataProviders() {
@@ -56,7 +69,36 @@ public class CoordinatorService implements CoordinatorCallback {
             provider.setCallback(this);
             provider.startProvider();
             logger.info("Loaded and started DataProvider: {}", provider.getClass().getSimpleName());
+            if (provider instanceof PF2RestProvider) {
+                for (String rate : pf2Props.getRates()) {
+                    provider.subscribe("PF2", rate);
+                }
+            }
         }
+
+        if (providerProperties.getClasses() != null) {
+            for (String className : providerProperties.getClasses()) {
+                try {
+                    Class<?> clazz = Class.forName(className);
+                    DataProvider provider = (DataProvider) clazz.getDeclaredConstructor().newInstance();
+                    provider.setCallback(this);
+                    provider.startProvider();
+                    logger.info("Loaded dynamic DataProvider: {}", className);
+                    if (provider instanceof PF2RestProvider) {
+                        for (String rate : pf2Props.getRates()) {
+                            provider.subscribe("PF2", rate);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to load dynamic provider {}: {}", className, e.getMessage(), e);
+                }
+            }
+        }
+    }
+
+    @PostConstruct
+    public void initStreams() {
+        this.streamOps = redisTemplate.opsForStream();
     }
 
     @Override
@@ -71,18 +113,39 @@ public class CoordinatorService implements CoordinatorCallback {
 
     @Override
     public void onRateAvailable(String platformName, String rateName, Rate rate) {
+        // Clear PF2 error tracking on successful data receipt
+        if ("PF2".equals(platformName)) {
+            pf2ErrorStartMap.remove(rateName);
+        }
         logger.info("Rate available from {}: {}", platformName, rateName);
         alarmService.updateLastResponse(platformName);
         localCache.put(rateName, rate);
         // Persist raw rate to Redis and Kafka
         String message = formatRateMessage(rate);
-        redisTemplate.opsForValue().set("raw:" + rateName, message);
+        try {
+            redisTemplate.opsForValue().set("raw:" + rateName, message);
+        } catch (Exception e) {
+            logger.error("Redis error onRateAvailable for {}: {}", rateName, e.getMessage(), e);
+        }
         sendRateToKafka(message);
-        processComputedRates();
+        try {
+            streamOps.add("raw_stream", Map.of("message", message));
+        } catch (Exception e) {
+            logger.error("Redis Stream error onRateAvailable for {}: {}", rateName, e.getMessage(), e);
+        }
+        try {
+            processComputedRates();
+        } catch (Exception e) {
+            logger.error("Error in processComputedRates: {}", e.getMessage(), e);
+        }
     }
 
     @Override
     public void onRateUpdate(String platformName, String rateName, RateFields rateFields) {
+        // Clear PF2 error tracking on update
+        if ("PF2".equals(platformName)) {
+            pf2ErrorStartMap.remove(rateName);
+        }
         logger.info("Rate update from {}: {}", platformName, rateName);
         alarmService.updateLastResponse(platformName);
         Rate existingRate = localCache.get(rateName);
@@ -95,14 +158,50 @@ public class CoordinatorService implements CoordinatorCallback {
         existingRate.setAsk(rateFields.getAsk());
         existingRate.setTimestamp(LocalDateTime.now().toString());
         String updateMessage = formatRateMessage(existingRate);
-        redisTemplate.opsForValue().set("raw:" + rateName, updateMessage);
+        try {
+            redisTemplate.opsForValue().set("raw:" + rateName, updateMessage);
+        } catch (Exception e) {
+            logger.error("Redis error onRateUpdate for {}: {}", rateName, e.getMessage(), e);
+        }
         sendRateToKafka(updateMessage);
-        processComputedRates();
+        try {
+            streamOps.add("raw_stream", Map.of("message", updateMessage));
+        } catch (Exception e) {
+            logger.error("Redis Stream error onRateUpdate for {}: {}", rateName, e.getMessage(), e);
+        }
+        try {
+            processComputedRates();
+        } catch (Exception e) {
+            logger.error("Error in processComputedRates: {}", e.getMessage(), e);
+        }
     }
 
     @Override
     public void onRateStatus(String platformName, String rateName, RateStatus rateStatus) {
         logger.debug("Rate status from {}: {} - {}", platformName, rateName, rateStatus);
+        // If PF2 errors persist beyond threshold, unsubscribe and trigger alarm
+        if ("PF2".equals(platformName) && rateStatus == RateStatus.ERROR) {
+            LocalDateTime now = LocalDateTime.now();
+            // Record first error time if not already tracked
+            if (!pf2ErrorStartMap.containsKey(rateName)) {
+                pf2ErrorStartMap.put(rateName, now);
+            }
+            LocalDateTime firstErrorTime = pf2ErrorStartMap.get(rateName);
+            Duration duration = Duration.between(firstErrorTime, now);
+            if (duration.getSeconds() >= PF2_ERROR_THRESHOLD_SECONDS) {
+                logger.warn("Unsubscribing from {} after {} seconds of errors", rateName, duration.getSeconds());
+                for (DataProvider provider : dataProviders) {
+                    if (provider instanceof PF2RestProvider) {
+                        provider.unSubscribe(platformName, rateName);
+                    }
+                }
+                alarmService.sendAlarmEmail(platformName, duration.getSeconds());
+                pf2ErrorStartMap.remove(rateName);
+            }
+        } else {
+            // Clear error tracking on any non-error event
+            pf2ErrorStartMap.remove(rateName);
+        }
     }
 
     /**
@@ -132,6 +231,7 @@ public class CoordinatorService implements CoordinatorCallback {
                 );
             }
             redisTemplate.opsForValue().set("computed:USDTRY", usdtryMessage);
+            streamOps.add("computed_stream", Map.of("message", usdtryMessage));
             sendRateToKafka(usdtryMessage);
         }
         // EUR/TRY computation
@@ -164,6 +264,7 @@ public class CoordinatorService implements CoordinatorCallback {
                 );
             }
             redisTemplate.opsForValue().set("computed:EURTRY", eurtryMessage);
+            streamOps.add("computed_stream", Map.of("message", eurtryMessage));
             sendRateToKafka(eurtryMessage);
         }
         // GBP/TRY computation
@@ -196,6 +297,7 @@ public class CoordinatorService implements CoordinatorCallback {
                 );
             }
             redisTemplate.opsForValue().set("computed:GBPTRY", gbptryMessage);
+            streamOps.add("computed_stream", Map.of("message", gbptryMessage));
             sendRateToKafka(gbptryMessage);
         }
     }
@@ -207,12 +309,14 @@ public class CoordinatorService implements CoordinatorCallback {
     }
 
     private void sendRateToKafka(String message) {
-        try {
-            kafkaTemplate.send(forexTopic, message);
-            logger.debug("Sent message to Kafka: {}", message);
-        } catch (Exception ex) {
-            logger.error("Error sending to Kafka", ex);
-        }
+        kafkaTemplate.send(kafkaProps.getForex(), message)
+            .whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    logger.error("Kafka send failed for topic {}: {}", kafkaProps.getForex(), throwable.getMessage(), throwable);
+                } else {
+                    logger.info("Sent message to topic {}: {}", kafkaProps.getForex(), message);
+                }
+            });
     }
     
     // Getter for testing dynamic data provider loading

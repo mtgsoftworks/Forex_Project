@@ -23,6 +23,10 @@ public class ConsumerService {
             String[] parts = message.split("\\|");
             if (parts.length == 4) {
                 String rateName = parts[0];
+                // add prefix for calculated rates
+                if (!rateName.startsWith("PF1_") && !rateName.startsWith("PF2_")) {
+                    rateName = "calculated_" + rateName;
+                }
                 double bid = Double.parseDouble(parts[1]);
                 double ask = Double.parseDouble(parts[2]);
                 String rateTimestamp = parts[3];

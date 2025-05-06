@@ -4,6 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import jakarta.annotation.PreDestroy;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -15,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashSet;
 
 import com.example.forexproject.config.TcpStreamingProperties;
+import com.example.forexproject.model.Rate;
 
 @Component
 public class TcpServer implements Runnable {
@@ -23,6 +26,7 @@ public class TcpServer implements Runnable {
 
     @Autowired
     private TcpStreamingProperties props;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     private ServerSocket serverSocket;
 
@@ -62,6 +66,14 @@ public class TcpServer implements Runnable {
         }
     }
 
+    /**
+     * Ensure server socket is closed on application shutdown for graceful exit.
+     */
+    @PreDestroy
+    private void shutdown() {
+        closeServerSocket();
+    }
+
     private class ClientHandler implements Runnable {
 
         private Socket clientSocket;
@@ -83,6 +95,11 @@ public class TcpServer implements Runnable {
                 String command;
                 while ((command = in.readLine()) != null) {
                     logger.info("Received command from {}: {}", clientSocket.getRemoteSocketAddress(), command);
+                    // Heartbeat command support
+                    if ("heartbeat".equalsIgnoreCase(command.trim())) {
+                        out.println("heartbeat|timestamp:" + LocalDateTime.now());
+                        continue;
+                    }
                     if (command.contains("|")) {
                         String[] tokens = command.split("\\|");
                         String mainCmd = tokens[0].trim().toLowerCase();
@@ -103,7 +120,7 @@ public class TcpServer implements Runnable {
                             // Abonelik için veri yayınlayacak thread oluşturuluyor.
                             Thread t = new Thread(() -> {
                                 try {
-                                    for (int i = 0; i < props.getMessageCount() && !Thread.currentThread().isInterrupted(); i++) {
+                                    while (!Thread.currentThread().isInterrupted()) {
                                         double baseBid = props.getInitialBid().get(symbol);
                                         double baseAsk = props.getInitialAsk().get(symbol);
                                         double driftPct = props.getDriftPercentage() / 100.0;
@@ -111,9 +128,23 @@ public class TcpServer implements Runnable {
                                         double driftAsk = (Math.random()*2 - 1) * driftPct * baseAsk;
                                         double bid = baseBid + driftBid;
                                         double ask = baseAsk + driftAsk;
+                                        String timestamp = LocalDateTime.now().toString();
                                         String msg = String.format("%s|22:number:%.8f|25:number:%.8f|5:timestamp:%s",
-                                                symbol, bid, ask, LocalDateTime.now());
+                                                symbol, bid, ask, timestamp);
+                                        // Log streamed message to console
+                                        logger.info("Streaming to {}: {}", clientSocket.getRemoteSocketAddress(), msg);
                                         out.println(msg);
+                                        try {
+                                            Rate rateObj = new Rate();
+                                            rateObj.setRateName(symbol);
+                                            rateObj.setBid(bid);
+                                            rateObj.setAsk(ask);
+                                            rateObj.setTimestamp(timestamp);
+                                            restTemplate.postForEntity("http://localhost:8090/api/push/TCP", rateObj, Void.class);
+                                        } catch (Exception e) {
+                                            logger.warn("Coordinator push failed: {}", e.getMessage());
+                                        }
+                                        // Throttle: sleep between messages
                                         Thread.sleep(props.getMessageInterval());
                                     }
                                 } catch (InterruptedException e) {
@@ -134,6 +165,8 @@ public class TcpServer implements Runnable {
                                 t.interrupt();
                                 subscriptionThreads.remove(symbol);
                                 out.println("Unsubscribed from " + symbol);
+                                // Notify client of rate status closed
+                                out.println("status|" + symbol + "|CLOSED");
                             } else {
                                 out.println("ERROR|Not subscribed to " + symbol);
                             }

@@ -2,6 +2,7 @@ package com.example.forexproject.coordinator.provider;
 
 import com.example.forexproject.coordinator.CoordinatorCallback;
 import com.example.forexproject.coordinator.config.Pf2RestProperties;
+import com.example.forexproject.coordinator.provider.DataProvider;
 import com.example.forexproject.model.Rate;
 import com.example.forexproject.model.RateFields;
 import com.example.forexproject.model.RateStatus;
@@ -65,6 +66,11 @@ public class PF2RestProvider implements DataProvider {
 
     @Override
     public void startProvider() {
+        if (!props.isEnabled() || props.isManualMode()) {
+            logger.info("PF2RestProvider auto-start disabled (enabled={}, manualMode={})",
+                    props.isEnabled(), props.isManualMode());
+            return;
+        }
         running = true;
         poller = new Thread(this, "PF2RestProvider-Poller");
         poller.start();
@@ -95,6 +101,23 @@ public class PF2RestProvider implements DataProvider {
                 if (callback != null) callback.onRateStatus("PF2", symbol, RateStatus.ERROR);
             }
         }
+    }
+
+    /**
+     * Manual poll for a single symbol.
+     */
+    public Rate poll(String symbol) {
+        String url = props.getBaseUrl() + symbol;
+        ResponseEntity<Rate> response = restTemplate.getForEntity(url, Rate.class);
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            Rate rate = response.getBody();
+            if (callback != null) {
+                callback.onRateUpdate("PF2", symbol, new RateFields(rate.getBid(), rate.getAsk()));
+                callback.onRateAvailable("PF2", symbol, rate);
+            }
+            return rate;
+        }
+        throw new RuntimeException("PF2 manual poll failed for " + symbol);
     }
 
     @Override

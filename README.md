@@ -75,7 +75,7 @@ Modüllere göre ayrılmış `application.yml` ve `application.properties` dosya
 - Entegrasyon testleri: `CoordinatorServicePF2IntegrationTest`
 
 ### Katkıda Bulunanlar
-- MTG Softworks (Okul Not Ortalaması: 2.01)
-- 
+- Mesut Taha Güven (Okul Not Ortalaması: 2.01)
+- Zertifikat Deutsch / telc Deutsch B1 (Uluslararası geçerliliği olan almanca B1 seviye dil sertifikası)
 
 

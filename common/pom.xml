@@ -29,6 +29,23 @@
         <skipTests>true</skipTests>
       </configuration>
     </plugin>
+    <!-- Configure MapStruct annotation processing -->
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-compiler-plugin</artifactId>
+      <version>3.10.1</version>
+      <configuration>
+        <source>${maven.compiler.source}</source>
+        <target>${maven.compiler.target}</target>
+        <annotationProcessorPaths>
+          <path>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>1.5.5.Final</version>
+          </path>
+        </annotationProcessorPaths>
+      </configuration>
+    </plugin>
   </plugins>
 </build>
 
@@ -59,6 +76,29 @@
     </dependency>
     <!-- ...existing dependencies... -->
 
+    <!-- Validation API -->
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <version>3.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.validator</groupId>
+      <artifactId>hibernate-validator</artifactId>
+      <version>8.0.0.Final</version>
+    </dependency>
+    <!-- MapStruct for mapping DTOs -->
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+      <version>1.5.5.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct-processor</artifactId>
+      <version>1.5.5.Final</version>
+      <scope>provided</scope>
+    </dependency>
     <!-- Gerekirse Jackson gibi diğer bağımlılıklar da eklenebilir -->
     <dependency>
         <groupId>org.junit.jupiter</groupId>

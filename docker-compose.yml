@@ -2,9 +2,10 @@ version: '2.4'
 services:
   redis:
     image: redis:7.0.11
-    container_name: redis
     ports:
       - "6379:6379"
+    entrypoint: >
+      sh -c "rm -rf /data/* && exec redis-server"
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
@@ -47,6 +48,8 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    entrypoint: >
+      sh -c "rm -rf /var/lib/postgresql/data/* && exec docker-entrypoint.sh postgres"
 
   opensearch-node1:
     container_name: opensearch-node1
