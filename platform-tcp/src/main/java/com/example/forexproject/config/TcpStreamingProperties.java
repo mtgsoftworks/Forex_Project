@@ -12,21 +12,36 @@ import java.util.Map;
 @Component
 @ConfigurationProperties(prefix = "tcp.streaming")
 public class TcpStreamingProperties {
+    /** TCP sunucu port numarası. */
     private int port = 8081;
+
+    /** Mesajlar arasındaki gecikme süresi (ms). */
     private long messageInterval = 1000;
+
+    /** Gönderilecek toplam mesaj sayısı (abonelik için kullanılabilir). */
     private int messageCount = 10;
+
+    /** Simülasyon sürüklenme yüzdesi (drift). */
     private double driftPercentage = 1.0;
+
+    /** Simüle edilecek döviz sembolleri listesi. */
     private List<String> rates = List.of("PF1_USDTRY", "PF1_EURUSD", "PF1_GBPUSD");
+
+    /** Başlangıç teklif fiyatları. */
     private Map<String, Double> initialBid = Map.of(
         "PF1_USDTRY", 34.0,
         "PF1_EURUSD", 1.05,
         "PF1_GBPUSD", 0.80
     );
+
+    /** Başlangıç alış fiyatları. */
     private Map<String, Double> initialAsk = Map.of(
         "PF1_USDTRY", 35.0,
         "PF1_EURUSD", 1.07,
         "PF1_GBPUSD", 0.82
     );
+
+    /** İstemciye gönderilen hoş geldiniz mesajı. */
     private String welcomeMessage = "Welcome to the Forex TCP Server. Available commands: subscribe|RATE, unsubscribe|RATE";
 
     public int getPort() { return port; }

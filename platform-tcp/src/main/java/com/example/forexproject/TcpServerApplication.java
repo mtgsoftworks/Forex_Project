@@ -9,6 +9,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Spring Boot TCP sunucusu uygulamasını başlatan ana sınıf.
+ */
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
 @ConfigurationPropertiesScan
 public class TcpServerApplication {

@@ -1,6 +1,5 @@
 package com.example.forexproject.coordinator.provider;
 
-import com.example.forexproject.coordinator.provider.DataProvider;
 
 import com.example.forexproject.coordinator.config.PF1TcpProperties;
 import org.springframework.beans.factory.annotation.Autowired;

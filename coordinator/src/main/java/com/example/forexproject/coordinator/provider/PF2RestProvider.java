@@ -2,7 +2,6 @@ package com.example.forexproject.coordinator.provider;
 
 import com.example.forexproject.coordinator.CoordinatorCallback;
 import com.example.forexproject.coordinator.config.Pf2RestProperties;
-import com.example.forexproject.coordinator.provider.DataProvider;
 import com.example.forexproject.model.Rate;
 import com.example.forexproject.model.RateFields;
 import com.example.forexproject.model.RateStatus;
@@ -89,8 +88,8 @@ public class PF2RestProvider implements DataProvider {
             String url = props.getBaseUrl() + symbol;
             try {
                 ResponseEntity<Rate> response = restTemplate.getForEntity(url, Rate.class);
-                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                    Rate rate = response.getBody();
+                Rate rate = response.getBody();
+                if (response.getStatusCode().is2xxSuccessful() && rate != null) {
                     if (callback != null) {
                         callback.onRateUpdate("PF2", symbol, new RateFields(rate.getBid(), rate.getAsk()));
                         callback.onRateAvailable("PF2", symbol, rate);
@@ -109,8 +108,8 @@ public class PF2RestProvider implements DataProvider {
     public Rate poll(String symbol) {
         String url = props.getBaseUrl() + symbol;
         ResponseEntity<Rate> response = restTemplate.getForEntity(url, Rate.class);
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            Rate rate = response.getBody();
+        Rate rate = response.getBody();
+        if (response.getStatusCode().is2xxSuccessful() && rate != null) {
             if (callback != null) {
                 callback.onRateUpdate("PF2", symbol, new RateFields(rate.getBid(), rate.getAsk()));
                 callback.onRateAvailable("PF2", symbol, rate);

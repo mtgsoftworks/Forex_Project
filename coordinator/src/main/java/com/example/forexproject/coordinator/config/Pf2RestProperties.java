@@ -12,7 +12,7 @@ import java.util.List;
 public class Pf2RestProperties {
 
     /** Base URL of the PF2 REST simulation service */
-    private String baseUrl = "http://localhost:8080/api/rates/";
+    private String baseUrl = "http://localhost:8082/api/rates/";
 
     /** Poll interval in milliseconds */
     private long pollInterval = 1000;

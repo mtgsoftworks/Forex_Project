@@ -1,0 +1,25 @@
+server:
+  port: ${SERVER_PORT:8100}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/forexdb
+    username: postgres
+    password: 8465
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      bootstrap-servers: ${spring.kafka.bootstrap-servers}
+      group-id: forex_group
+      auto-offset-reset: earliest
+      session-timeout-ms: 15000
+      heartbeat-interval-ms: 3000
+      request-timeout-ms: 30000
+
+opensearch:
+  host: opensearch-node1
+  port: 9200 
