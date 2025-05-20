@@ -3,16 +3,21 @@ server:
 
 spring:
   kafka:
-    bootstrap-servers: localhost:29092
+    bootstrap-servers: kafka:9092
   data:
     redis:
-      host: localhost
+      host: redis
       port: 6379
+  datasource:
+    url: jdbc:postgresql://postgres:5432/forexdb
+    username: postgres
+    password: 8465
+    driver-class-name: org.postgresql.Driver
   mail:
     host: smtp.gmail.com
     port: 587
-    username: your_email@example.com  # update securely
-    password: ${MAIL_PASSWORD}
+    username: mesuttahaguven@gmail.com  # update securely
+    password: finb cfpq hcxk opth
     properties:
       mail.smtp:
         auth: true
@@ -20,6 +25,9 @@ spring:
           enable: true
   main:
     log-startup-info: false
+  redis:
+    host: redis
+    port: 6379
 
 logging:
   level:
@@ -36,14 +44,14 @@ calculation:
 
 pf2:
   rest:
-    base-url: http://localhost:8080/api/rates/
+    base-url: http://platform-rest:8082/api/rates/
     poll-interval: 1000
     enabled: false
-    manual-mode: false
+    manual-mode: true
 
 pf1:
   tcp:
-    host: localhost
+    host: platform-tcp
     port: 8081
     enabled: false
 
@@ -53,7 +61,12 @@ coordinator:
   providers:
     classes:
       - com.example.forexproject.coordinator.provider.PF2RestProvider
+  alarm:
+    enabled: true
+    check-interval: 100000  # 10 saniye
+    threshold-seconds: 300
+    recipient-email: mtggamer51@gmail.com
 
-sample:
-  provider:
-    enabled: false
+opensearch:
+  host: opensearch-node1
+  port: 9200

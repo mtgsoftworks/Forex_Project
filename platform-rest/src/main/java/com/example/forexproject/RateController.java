@@ -55,7 +55,7 @@ public class RateController {
         logger.info("Returning rate for {}: bid={}, ask={}, timestamp={}", rateName, bid, ask, timestamp);
         RateResponse response = new RateResponse(rateName, bid, ask, timestamp);
         try {
-            restTemplate.postForEntity("http://localhost:8090/api/push/PF2", response, Void.class);
+            restTemplate.postForEntity("http://coordinator:8090/api/push/PF2", response, Void.class);
         } catch (Exception e) {
             logger.warn("Coordinator push failed: {}", e.getMessage());
         }

@@ -140,7 +140,7 @@ public class TcpServer implements Runnable {
                                             rateObj.setBid(bid);
                                             rateObj.setAsk(ask);
                                             rateObj.setTimestamp(timestamp);
-                                            restTemplate.postForEntity("http://localhost:8090/api/push/TCP", rateObj, Void.class);
+                                            restTemplate.postForEntity("http://coordinator:8090/api/push/TCP", rateObj, Void.class);
                                         } catch (Exception e) {
                                             logger.warn("Coordinator push failed: {}", e.getMessage());
                                         }

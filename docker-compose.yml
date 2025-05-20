@@ -2,10 +2,13 @@ version: '2.4'
 services:
   redis:
     image: redis:7.0.11
+    container_name: redis
     ports:
-      - "6379:6379"
+      - "16379:6379"
     entrypoint: >
       sh -c "rm -rf /data/* && exec redis-server"
+    networks:
+      - mynetwork
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
@@ -35,7 +38,12 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     networks:
-      mynetwork: {}
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "unset JMX_PORT; kafka-topics --bootstrap-server kafka:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres:15-alpine
@@ -50,9 +58,11 @@ services:
       - pgdata:/var/lib/postgresql/data
     entrypoint: >
       sh -c "rm -rf /var/lib/postgresql/data/* && exec docker-entrypoint.sh postgres"
+    networks:
+      - mynetwork
 
   opensearch-node1:
-    container_name: opensearch-node1
+    container_name: opensearch
     image: opensearchproject/opensearch:2.11.1
     environment:
       - discovery.type=single-node
@@ -105,6 +115,83 @@ services:
       opensearch-node1:
         condition: service_healthy
     command: /bin/sh -c "bin/logstash-plugin install logstash-output-opensearch && exec logstash"
+
+  # Application modules as separate Docker services
+  platform-rest:
+    build:
+      context: .
+      dockerfile: platform-rest/Dockerfile
+    image: platform-rest:latest
+    container_name: platform-rest
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./platform-rest/logs/platform-rest:/logs/platform-rest
+    networks:
+      - mynetwork
+    depends_on:
+      - redis
+      - coordinator
+
+  platform-tcp:
+    build:
+      context: .
+      dockerfile: platform-tcp/Dockerfile
+    image: platform-tcp:latest
+    container_name: platform-tcp
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./platform-tcp/logs/platform-tcp:/logs/platform-tcp
+    networks:
+      - mynetwork
+    depends_on:
+      - kafka
+      - coordinator
+
+  coordinator:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    image: coordinator:latest
+    container_name: coordinator
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./coordinator/logs/coordinator:/logs/coordinator
+    networks:
+      - mynetwork
+      - opensearch-net
+    depends_on:
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      opensearch-node1:
+        condition: service_healthy
+
+  kafka-consumer:
+    build:
+      context: .
+      dockerfile: kafka-consumer/Dockerfile
+    image: kafka-consumer:latest
+    container_name: kafka-consumer
+    ports:
+      - "8100:8100"
+    volumes:
+      - ./kafka-consumer/logs/kafka-consumer:/logs/kafka-consumer
+    networks:
+      - mynetwork
+      - opensearch-net
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      opensearch-node1:
+        condition: service_healthy
 
 volumes:
   pgdata:

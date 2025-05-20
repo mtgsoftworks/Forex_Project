@@ -13,6 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationContext;
 
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -21,12 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.example.forexproject.coordinator.service.CalculationService;
-import com.example.forexproject.coordinator.service.AlarmService;
+import com.example.forexproject.coordinator.provider.PF2RestProvider;
 import com.example.forexproject.coordinator.config.ProviderProperties;
 import com.example.forexproject.coordinator.config.Pf2RestProperties;
 import com.example.forexproject.coordinator.config.CoordinatorKafkaProperties;
-import com.example.forexproject.coordinator.provider.PF2RestProvider;
+import com.example.forexproject.coordinator.service.CalculationService;
+import com.example.forexproject.coordinator.service.AlarmService;
 
 @Service
 public class CoordinatorService implements CoordinatorCallback {
@@ -45,7 +46,6 @@ public class CoordinatorService implements CoordinatorCallback {
 
     @Autowired
     private CalculationService calculationService;
-    
     @Autowired
     private AlarmService alarmService;
 
@@ -58,6 +58,9 @@ public class CoordinatorService implements CoordinatorCallback {
     private Pf2RestProperties pf2Props;
     @Autowired
     private CoordinatorKafkaProperties kafkaProps;
+
+    @Autowired
+    private ApplicationContext applicationContext;  // inject Spring context
 
     // Track PF2 error start times per symbol
     private Map<String, LocalDateTime> pf2ErrorStartMap = new ConcurrentHashMap<>();
@@ -80,7 +83,9 @@ public class CoordinatorService implements CoordinatorCallback {
             for (String className : providerProperties.getClasses()) {
                 try {
                     Class<?> clazz = Class.forName(className);
-                    DataProvider provider = (DataProvider) clazz.getDeclaredConstructor().newInstance();
+                    @SuppressWarnings("unchecked")
+                    Class<? extends DataProvider> providerClass = (Class<? extends DataProvider>) clazz;
+                    DataProvider provider = applicationContext.getBean(providerClass);
                     provider.setCallback(this);
                     provider.startProvider();
                     logger.info("Loaded dynamic DataProvider: {}", className);
@@ -104,6 +109,7 @@ public class CoordinatorService implements CoordinatorCallback {
     @Override
     public void onConnect(String platformName, boolean status) {
         logger.info("Connected to {}: {}", platformName, status);
+        alarmService.updateLastResponse(platformName);
     }
 
     @Override
@@ -123,7 +129,7 @@ public class CoordinatorService implements CoordinatorCallback {
         // Persist raw rate to Redis and Kafka
         String message = formatRateMessage(rate);
         try {
-            redisTemplate.opsForValue().set("raw:" + rateName, message);
+            redisTemplate.opsForList().rightPush("raw:" + rateName, message);
         } catch (Exception e) {
             logger.error("Redis error onRateAvailable for {}: {}", rateName, e.getMessage(), e);
         }
@@ -159,7 +165,7 @@ public class CoordinatorService implements CoordinatorCallback {
         existingRate.setTimestamp(LocalDateTime.now().toString());
         String updateMessage = formatRateMessage(existingRate);
         try {
-            redisTemplate.opsForValue().set("raw:" + rateName, updateMessage);
+            redisTemplate.opsForList().rightPush("raw:" + rateName, updateMessage);
         } catch (Exception e) {
             logger.error("Redis error onRateUpdate for {}: {}", rateName, e.getMessage(), e);
         }
@@ -230,7 +236,7 @@ public class CoordinatorService implements CoordinatorCallback {
                     timestamp
                 );
             }
-            redisTemplate.opsForValue().set("computed:USDTRY", usdtryMessage);
+            redisTemplate.opsForList().rightPush("computed:USDTRY", usdtryMessage);
             streamOps.add("computed_stream", Map.of("message", usdtryMessage));
             sendRateToKafka(usdtryMessage);
         }
@@ -263,7 +269,7 @@ public class CoordinatorService implements CoordinatorCallback {
                     timestamp
                 );
             }
-            redisTemplate.opsForValue().set("computed:EURTRY", eurtryMessage);
+            redisTemplate.opsForList().rightPush("computed:EURTRY", eurtryMessage);
             streamOps.add("computed_stream", Map.of("message", eurtryMessage));
             sendRateToKafka(eurtryMessage);
         }
@@ -296,7 +302,7 @@ public class CoordinatorService implements CoordinatorCallback {
                     timestamp
                 );
             }
-            redisTemplate.opsForValue().set("computed:GBPTRY", gbptryMessage);
+            redisTemplate.opsForList().rightPush("computed:GBPTRY", gbptryMessage);
             streamOps.add("computed_stream", Map.of("message", gbptryMessage));
             sendRateToKafka(gbptryMessage);
         }
@@ -310,11 +316,11 @@ public class CoordinatorService implements CoordinatorCallback {
 
     private void sendRateToKafka(String message) {
         kafkaTemplate.send(kafkaProps.getForex(), message)
-            .whenComplete((result, throwable) -> {
+            .whenComplete((metadata, throwable) -> {
                 if (throwable != null) {
                     logger.error("Kafka send failed for topic {}: {}", kafkaProps.getForex(), throwable.getMessage(), throwable);
                 } else {
-                    logger.info("Sent message to topic {}: {}", kafkaProps.getForex(), message);
+                    logger.info("Sent message to topic {}: {} | metadata: {}", kafkaProps.getForex(), message, metadata);
                 }
             });
     }

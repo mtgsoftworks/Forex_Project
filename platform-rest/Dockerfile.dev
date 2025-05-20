@@ -1,11 +1,21 @@
 # Çok aşamalı mimari kullanarak uygulamanın derlenip çalıştırılması
 
 # Build aşaması
-FROM maven:3.9.3-eclipse-temurin-23 AS build
+FROM eclipse-temurin:23-jdk AS build
 WORKDIR /app
+
+# Install Maven
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y wget ca-certificates tar; \
+    wget https://archive.apache.org/dist/maven/maven-3/3.9.3/binaries/apache-maven-3.9.3-bin.tar.gz; \
+    tar -xzf apache-maven-3.9.3-bin.tar.gz -C /opt; \
+    ln -s /opt/apache-maven-3.9.3/bin/mvn /usr/bin/mvn; \
+    rm apache-maven-3.9.3-bin.tar.gz
 
 # Tüm proje dosyalarını kopyalıyoruz (kökteki pom.xml ve diğer modüller dahil)
 COPY . .
+RUN mvn install -N -DskipTests  # install root POM
 
 # Yalnızca platform-rest modülünü ve ona bağlı modülleri derliyoruz
 RUN mvn clean package -pl platform-rest -am -DskipTests
@@ -15,6 +25,6 @@ FROM eclipse-temurin:23-jdk
 WORKDIR /app
 
 # Derleme aşamasında oluşturulan platform-rest JAR dosyasını kopyalıyoruz
-COPY --from=build /app/platform-rest/target/platform-rest-1.0-SNAPSHOT.jar app.jar
-EXPOSE 8081
+COPY --from=build /app/platform-rest/target/platform-rest-1.0.0.jar app.jar
+EXPOSE 8082
 CMD ["java", "-jar", "app.jar"] 

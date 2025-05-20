@@ -1,6 +1,5 @@
 package com.example.forexproject.kafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -26,8 +25,6 @@ public class ElasticConsumerService {
 
     @Autowired
     private RestHighLevelClient esClient;
-
-    private final ObjectMapper mapper = new ObjectMapper();
 
     @KafkaListener(topics = "forex_topic", groupId = "forex_elastic_group")
     public void listenAndIndex(String message) {
