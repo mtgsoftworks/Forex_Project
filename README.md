@@ -397,7 +397,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 👨‍💻 Author
 
-**Mesut Taha Güven** ([@mtggamer](https://github.com/mtggamer))
+**Mesut Taha Güven** ([@mtggamer](https://github.com/mtgsoftworks))
 
 ## 🙏 Acknowledgments
 
@@ -406,14 +406,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - Redis community for high-performance caching solutions
 - OpenSearch project for powerful search and analytics
 
-## 📞 Support
-
-For questions, issues, or feature requests:
-
-1. **GitHub Issues**: [Create an issue](https://github.com/mtgsoftworks/Forex_Project/issues)
-2. **Documentation**: Check this README and inline code comments
-3. **Email**: Contact the maintainer for urgent matters
-
----
-
-**Happy Trading! 💰📈**
