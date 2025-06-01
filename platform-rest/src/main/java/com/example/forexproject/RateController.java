@@ -20,9 +20,7 @@ import java.util.Random;
 import com.example.forexproject.config.RateSimulationProperties;
 
 /**
- * REST API controller for on-demand Forex rate simulation (PF2).
- * Endpoint: GET /api/rates/{rateName}
- * Valid symbols configured via RateSimulationProperties.rates.
+ * REST API endpoints for döviz oranı simülasyonu.
  */
 @RestController
 public class RateController {
@@ -33,6 +31,13 @@ public class RateController {
     private final Random random = new Random();
     private final RestTemplate restTemplate = new RestTemplate();
 
+    /**
+     * Verilen sembol için tek seferlik döviz oranı simülasyonu yapar ve sonucu döner.
+     * Ayrıca Coordinator servisine push eder.
+     *
+     * @param rateName Simülasyon yapılacak döviz sembolü (örn: PF2_USDTRY).
+     * @return bid, ask ve timestamp içeren RateResponse veya hata durumunda 400 HTTP.
+     */
     @GetMapping("/api/rates/{rateName}")
     public ResponseEntity<?> getRate(@PathVariable String rateName) {
         // Geçerli sembol doğrulaması
@@ -62,6 +67,13 @@ public class RateController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Belirtilen sembol için sürekli SSE (Server-Sent Events) üzerinden döviz oranı akışı sağlar.
+     *
+     * @param rateName Takip edilecek döviz sembolü.
+     * @return SseEmitter objesi, olay akışını içerir.
+     * @throws ResponseStatusException Geçersiz sembol için BAD_REQUEST fırlatır.
+     */
     @GetMapping(value = "/api/rates/stream/{rateName}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamRate(@PathVariable String rateName) {
         // Validate symbol

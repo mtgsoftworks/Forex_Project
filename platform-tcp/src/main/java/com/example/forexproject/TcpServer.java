@@ -19,6 +19,10 @@ import java.util.HashSet;
 import com.example.forexproject.config.TcpStreamingProperties;
 import com.example.forexproject.model.Rate;
 
+/**
+ * TCP sunucusunu çalıştıran bileşen.
+ * Gelen isteklere göre bağlantı açar, subscribe/unsubscribe komutlarını yönetir ve rate verilerini yayınlar.
+ */
 @Component
 public class TcpServer implements Runnable {
 
@@ -39,6 +43,9 @@ public class TcpServer implements Runnable {
         this.props.setPort(port);
     }
 
+    /**
+     * Server soketini başlatır ve gelen bağlantıları dinler.
+     */
     @Override
     public void run() {
         try {
@@ -67,13 +74,16 @@ public class TcpServer implements Runnable {
     }
 
     /**
-     * Ensure server socket is closed on application shutdown for graceful exit.
+     * Uygulama kapanırken server soketini kapatmak için çağrılır.
      */
     @PreDestroy
     private void shutdown() {
         closeServerSocket();
     }
 
+    /**
+     * Her bir istemci bağlantısı için komutları işleyen ve rate akışı sağlayan handler sınıfı.
+     */
     private class ClientHandler implements Runnable {
 
         private Socket clientSocket;
@@ -85,6 +95,10 @@ public class TcpServer implements Runnable {
             this.validSymbols = new HashSet<>(props.getRates());
         }
 
+        /**
+         * Komut satırından subscribe/unsubscribe isteklerini işleyip,
+         * aboneliklere göre rate verilerini istemciye gönderir.
+         */
         @Override
         public void run() {
             try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));

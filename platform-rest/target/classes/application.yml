@@ -1,0 +1,18 @@
+server:
+  port: 8082
+
+rate:
+  simulation:
+    rates:
+      - PF2_USDTRY
+      - PF2_EURUSD
+      - PF2_GBPUSD
+    initial-bid:
+      PF2_USDTRY: 34.0
+      PF2_EURUSD: 1.05
+      PF2_GBPUSD: 0.80
+    initial-ask:
+      PF2_USDTRY: 35.0
+      PF2_EURUSD: 1.07
+      PF2_GBPUSD: 0.82
+    drift-percentage: 1.0

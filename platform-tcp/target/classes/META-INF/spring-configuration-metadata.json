@@ -1,0 +1,60 @@
+{
+  "groups": [
+    {
+      "name": "tcp.streaming",
+      "type": "com.example.forexproject.config.TcpStreamingProperties",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "tcp.streaming.drift-percentage",
+      "type": "java.lang.Double",
+      "description": "Simülasyon sürüklenme yüzdesi (drift).",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    },
+    {
+      "name": "tcp.streaming.initial-ask",
+      "type": "java.util.Map<java.lang.String,java.lang.Double>",
+      "description": "Başlangıç alış fiyatları.",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    },
+    {
+      "name": "tcp.streaming.initial-bid",
+      "type": "java.util.Map<java.lang.String,java.lang.Double>",
+      "description": "Başlangıç teklif fiyatları.",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    },
+    {
+      "name": "tcp.streaming.message-count",
+      "type": "java.lang.Integer",
+      "description": "Gönderilecek toplam mesaj sayısı (abonelik için kullanılabilir).",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    },
+    {
+      "name": "tcp.streaming.message-interval",
+      "type": "java.lang.Long",
+      "description": "Mesajlar arasındaki gecikme süresi (ms).",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    },
+    {
+      "name": "tcp.streaming.port",
+      "type": "java.lang.Integer",
+      "description": "TCP sunucu port numarası.",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    },
+    {
+      "name": "tcp.streaming.rates",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Simüle edilecek döviz sembolleri listesi.",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    },
+    {
+      "name": "tcp.streaming.welcome-message",
+      "type": "java.lang.String",
+      "description": "İstemciye gönderilen hoş geldiniz mesajı.",
+      "sourceType": "com.example.forexproject.config.TcpStreamingProperties"
+    }
+  ],
+  "hints": []
+}

@@ -124,7 +124,7 @@ flowchart TD
    - Mesaj → Kafka Topic `forex_topic`.
 3. **Hesaplama**: `processComputedRates()`:
    - `FormulaService` (statik) veya Groovy script (`calculation.formulas`) kullanılır.
-   - Hesaplanan → Redis List & Stream → `computed:<rate>` & `computed_stream`.
+   - Hesaplanan → Redis List & Stream → `computed:<rate>` & `computed_stream` (örn: `computed:USDTRY`, `computed:EURUSD`, `computed:GBPUSD`).
    - Hesaplanan → Kafka Topic `forex_topic`.
 4. **AlarmService**:
    - `@Scheduled(fixedRateString=check-interval)` ile her milisaniyede kontrol.
@@ -177,8 +177,6 @@ pf1:
 - `JAVA_OPTS` (JVM ayarları)
 
 ## 9. Docker Compose Yapısı
-
-**Not:** Docker Compose, her servis için ilgili klasördeki `Dockerfile` (uzantısız) dosyasını kullanır. `Dockerfile.dev` dosyaları yalnızca geliştirme ortamında, manuel build veya override senaryoları için kullanılmaktadır.
 
 `docker-compose.yml` dosyasında aşağıdaki altyapı servisleri ve `app` servisi tanımlıdır:
 

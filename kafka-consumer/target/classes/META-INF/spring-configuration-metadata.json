@@ -1,0 +1,22 @@
+{
+  "groups": [
+    {
+      "name": "opensearch",
+      "type": "com.example.forexproject.kafka.config.ElasticsearchConfig",
+      "sourceType": "com.example.forexproject.kafka.config.ElasticsearchConfig"
+    }
+  ],
+  "properties": [
+    {
+      "name": "opensearch.host",
+      "type": "java.lang.String",
+      "sourceType": "com.example.forexproject.kafka.config.ElasticsearchConfig"
+    },
+    {
+      "name": "opensearch.port",
+      "type": "java.lang.Integer",
+      "sourceType": "com.example.forexproject.kafka.config.ElasticsearchConfig"
+    }
+  ],
+  "hints": []
+}

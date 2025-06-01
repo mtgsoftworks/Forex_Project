@@ -1,0 +1,37 @@
+{
+  "groups": [
+    {
+      "name": "rate.simulation",
+      "type": "com.example.forexproject.config.RateSimulationProperties",
+      "sourceType": "com.example.forexproject.config.RateSimulationProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "rate.simulation.drift-percentage",
+      "type": "java.lang.Double",
+      "sourceType": "com.example.forexproject.config.RateSimulationProperties"
+    },
+    {
+      "name": "rate.simulation.initial-ask",
+      "type": "java.util.Map<java.lang.String,java.lang.Double>",
+      "sourceType": "com.example.forexproject.config.RateSimulationProperties"
+    },
+    {
+      "name": "rate.simulation.initial-bid",
+      "type": "java.util.Map<java.lang.String,java.lang.Double>",
+      "sourceType": "com.example.forexproject.config.RateSimulationProperties"
+    },
+    {
+      "name": "rate.simulation.poll-interval",
+      "type": "java.lang.Long",
+      "sourceType": "com.example.forexproject.config.RateSimulationProperties"
+    },
+    {
+      "name": "rate.simulation.rates",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.example.forexproject.config.RateSimulationProperties"
+    }
+  ],
+  "hints": []
+}

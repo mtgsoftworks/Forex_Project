@@ -16,6 +16,13 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Tüm exception türlerini yakalayıp standart JSON hata cevabı döner.
+     *
+     * @param ex      Fırlatılan exception.
+     * @param request İstek bilgisi.
+     * @return Hata detaylarını içeren ResponseEntity.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleAll(Exception ex, WebRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
