@@ -1,284 +1,419 @@
-# Forex Projesi
+# Forex Project - Real-time Currency Exchange Rate Processing System
 
-## Genel Bakış
-Bu proje, farklı veri sağlayıcı platformlarından (PF1: TCP Streaming ve PF2: REST API) alınan döviz kuru verilerini modüler bir şekilde işleyen, dinamik hesaplama ve izleme özelliklerine sahip bir mimaridir.
+[![Java](https://img.shields.io/badge/Java-23-orange.svg)](https://www.oracle.com/java/technologies/javase/jdk23-archive-downloads.html)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Kafka](https://img.shields.io/badge/Kafka-7.x-blue.svg)](https://kafka.apache.org/)
+[![Redis](https://img.shields.io/badge/Redis-7.x-red.svg)](https://redis.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- **Ham Veri**: Redis List (`raw:<rate>`)
-- **Hesaplanmış Veri**: Kafka Topic (`computed:<symbol>`), örn: `computed:USDTRY`, `computed:EURUSD`, `computed:GBPUSD`
-- **Veri Depolama**: PostgreSQL (`raw_data`, `calculated_data` tablosu)
-- **Arama & Analiz**: OpenSearch/Elasticsearch
-- **Alarm & İzleme**: E-posta uyarıları (`AlarmService`), Logstash ile log toplama
+## 🌟 Overview
 
-## Modüller ve Veri Akış
+This project is a comprehensive **real-time forex exchange rate processing system** that simulates and processes currency exchange data from multiple data provider platforms. The system uses a modular architecture with **TCP streaming** and **REST API** data sources, featuring dynamic calculations, real-time monitoring, and enterprise-grade data processing capabilities.
 
-1. **common**: Ortak model, DTO, mapper ve JPA repository.
-2. **platform-tcp (PF1)**: TCP üzerinden gerçek zamanlı stream.
-3. **platform-rest (PF2)**: REST API + SSE stream ile veri simülasyonu.
-4. **coordinator**: Tüm sağlayıcıları yönetir, veri akışını Redis/Kafka'ya yazar, hesaplama ve alarm.
-   - Raw veriyi Redis list (`raw:<rate>`) ve Kafka topic (`forex_topic`) gönderir.
-   - Hesaplamaları tetikler, sonuçları Kafka'ya publish eder.
-   - AlarmService ile gecikme izler ve e-posta uyarısı yollar.
-5. **kafka-consumer**: Kafka'dan veriyi çekip PostgreSQL ve Elasticsearch'e yazar.
-6. **logstash**: Log toplama ve Elasticsearch yönlendirme.
-7. **docker-compose**: Tüm altyapı servislerini ayağa kaldırır.
+### Key Features
 
-Daha ayrıntılı mimari ve akış için [Project_Architecture.md](Project_Architecture.md) dosyasına bakın.
+- **Multi-Platform Data Ingestion**: TCP streaming (PF1) and REST API (PF2) data providers
+- **Real-time Data Processing**: Live forex rate calculations and transformations
+- **Enterprise Messaging**: Kafka-based event streaming architecture
+- **High-Performance Caching**: Redis for raw data storage and fast retrieval
+- **Data Persistence**: PostgreSQL for reliable data storage
+- **Search & Analytics**: OpenSearch/Elasticsearch integration
+- **Monitoring & Alerting**: Email notifications and comprehensive logging
+- **Scalable Architecture**: Microservices-based modular design
 
-## Gereksinimler
+## 🏗️ System Architecture
 
-Projeyi çalıştırmak için aşağıdaki yazılımları bilgisayarınıza kurmanız gerekmektedir:
-
-- **Java 23**: [Oracle JDK 23](https://www.oracle.com/java/technologies/javase/jdk23-archive-downloads.html) veya [OpenJDK 23](https://openjdk.java.net/projects/jdk/23/)
-- **Maven 3.8+**: [Maven İndirme Sayfası](https://maven.apache.org/download.cgi)
-- **Docker**: [Windows](https://docs.docker.com/desktop/install/windows-install/), [Mac](https://docs.docker.com/desktop/install/mac-install/), [Linux](https://docs.docker.com/engine/install/)
-- **Docker Compose**: Docker Desktop ile birlikte gelir veya [manuel kurulum](https://docs.docker.com/compose/install/)
-- **Git**: [Git İndirme Sayfası](https://git-scm.com/downloads)
-
-## Kurulum
-
-### 1. Projeyi Klonlama
-
-```bash
-# GitHub'dan projeyi klonlayın
-git clone https://github.com/mtgsoftworks/Forex_Project.git
-cd Forex_Project
+```
+┌─────────────────┐    ┌─────────────────┐
+│   PF1 (TCP)     │    │   PF2 (REST)    │
+│   Platform      │    │   Platform      │
+└─────────┬───────┘    └─────────┬───────┘
+          │                      │
+          └──────────┬───────────┘
+                     │
+            ┌────────▼────────┐
+            │   Coordinator   │
+            │     Service     │
+            └─────────┬───────┘
+                      │
+         ┌────────────┼────────────┐
+         │            │            │
+    ┌────▼───┐   ┌────▼───┐   ┌────▼───┐
+    │ Redis  │   │ Kafka  │   │ Alarm  │
+    │(Raw)   │   │(Comp.) │   │Service │
+    └────────┘   └────┬───┘   └────────┘
+                      │
+            ┌─────────▼─────────┐
+            │  Kafka Consumer   │
+            └─────────┬─────────┘
+                      │
+         ┌────────────┼────────────┐
+         │            │            │
+    ┌────▼───┐   ┌────▼───┐   ┌────▼───┐
+    │PostgreSQL│  │OpenSearch│ │Logstash│
+    │        │   │          │ │        │
+    └────────┘   └──────────┘ └────────┘
 ```
 
-### 2. Maven ile Derleme
+### Data Flow
+
+1. **Raw Data Collection**: Data providers (PF1/PF2) collect forex rates
+2. **Coordination**: Coordinator service manages data flow and processing
+3. **Raw Storage**: Raw data stored in Redis lists (`raw:<rate>`)
+4. **Computation**: Dynamic calculations triggered and results published
+5. **Event Streaming**: Computed data sent to Kafka topics (`computed:<symbol>`)
+6. **Persistence**: Kafka consumer stores data in PostgreSQL and OpenSearch
+7. **Monitoring**: AlarmService monitors delays and sends email alerts
+
+## 🏛️ Module Structure
+
+### Core Modules
+
+| Module | Description | Port | Technology Stack |
+|--------|-------------|------|------------------|
+| **common** | Shared models, DTOs, mappers, and JPA repositories | - | Spring Data JPA |
+| **platform-tcp** | TCP streaming data provider (PF1) | 8081 | Java TCP Sockets |
+| **platform-rest** | REST API + SSE streaming provider (PF2) | 8082 | Spring WebFlux, SSE |
+| **coordinator** | Central orchestration service | 8080 | Spring Boot, Groovy |
+| **kafka-consumer** | Data persistence service | - | Kafka Streams |
+| **logstash** | Log aggregation and processing | - | Logstash Pipeline |
+
+### Infrastructure Services
+
+| Service | Description | Port | Purpose |
+|---------|-------------|------|---------|
+| **Kafka** | Message streaming platform | 9092 | Event-driven architecture |
+| **Redis** | In-memory data store | 6379 | Raw data caching |
+| **PostgreSQL** | Relational database | 5432 | Data persistence |
+| **OpenSearch** | Search and analytics engine | 9200 | Data analytics |
+| **OpenSearch Dashboards** | Visualization platform | 5601 | Data visualization |
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+Ensure you have the following software installed:
+
+- **Java 23**: [Oracle JDK 23](https://www.oracle.com/java/technologies/javase/jdk23-archive-downloads.html) or [OpenJDK 23](https://openjdk.java.net/projects/jdk/23/)
+- **Maven 3.8+**: [Maven Download](https://maven.apache.org/download.cgi)
+- **Docker**: [Windows](https://docs.docker.com/desktop/install/windows-install/) | [Mac](https://docs.docker.com/desktop/install/mac-install/) | [Linux](https://docs.docker.com/engine/install/)
+- **Docker Compose**: [Installation Guide](https://docs.docker.com/compose/install/)
+- **Git**: [Git Download](https://git-scm.com/downloads)
+
+### Installation & Setup
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/mtgsoftworks/Forex_Project.git
+   cd Forex_Project
+   ```
+
+2. **Build the Project**
+   ```bash
+   # Build all modules (skip tests for quick setup)
+   mvn clean install -DskipTests
+   ```
+
+3. **Start Infrastructure Services**
+   ```bash
+   # Start all Docker services
+   docker-compose up -d
+   
+   # Follow logs (optional)
+   docker-compose logs -f
+   ```
+
+4. **Start Application Modules**
+   
+   **Option A: Individual Terminal Windows**
+   ```bash
+   # Terminal 1: TCP Platform
+   cd platform-tcp
+   mvn spring-boot:run
+   
+   # Terminal 2: REST Platform
+   cd platform-rest
+   mvn spring-boot:run
+   
+   # Terminal 3: Coordinator
+   cd coordinator
+   mvn spring-boot:run
+   
+   # Terminal 4: Kafka Consumer
+   cd kafka-consumer
+   mvn spring-boot:run
+   ```
+
+### Verification
+
+Check that all services are running:
 
 ```bash
-# Test'leri atlamak için -DskipTests parametresi kullanılır
-mvn clean install -DskipTests
+# Verify Docker services
+docker-compose ps
+
+# Test Kafka
+docker exec -it kafka kafka-topics --list --bootstrap-server localhost:9092
+
+# Test Redis
+docker exec -it redis redis-cli ping
+
+# Test Coordinator API
+curl http://localhost:8080/api/manual/pf2/PF2_USDTRY
 ```
 
-### 3. Docker Compose ile Çalıştırma
+## ⚙️ Configuration
 
-```bash
-# Tüm servisleri başlatır
-docker-compose up -d
+### Provider Configuration
 
-# Logları takip etmek için
-docker-compose logs -f
-```
+Each module can be configured via its respective `application.yml` file:
 
-### 4. Manuel Olarak Modülleri Çalıştırma
-
-Her bir modülü ayrı terminalde çalıştırmak için:
-
-```bash
-# Sırasıyla servisleri başlatın
-cd platform-tcp
-mvn spring-boot:run
-
-# Yeni bir terminal açıp
-cd platform-rest
-mvn spring-boot:run
-
-# Yeni bir terminal açıp
-cd coordinator
-mvn spring-boot:run
-
-# Yeni bir terminal açıp
-cd kafka-consumer
-mvn spring-boot:run
-```
-
-## Konfigürasyon Detayları
-
-### PF2 (REST) Konfigürasyon
+#### PF2 (REST Provider) Configuration
 ```yaml
 pf2:
   rest:
     base-url: http://localhost:8082/api/rates/
-    poll-interval: 1000    # ms, auto-poll aralığı
-    enabled: false         # provider aktif/pasif
-    manual-mode: false     # otomatik polling kapalı
+    poll-interval: 1000  # milliseconds
+    enabled: false       # auto-polling enabled/disabled
+    manual-mode: false   # manual-only mode
 ```
-- **enabled=false, manual-mode=false**: Otomatik polling kapalı, ancak `/api/manual/pf2/{symbol}` endpoint'inden manuel poll çalışır.
-- **enabled=true, manual-mode=false**: Uygulama açılır açılız her `poll-interval` ms'de REST sorgusu atılır.
-- **enabled=true, manual-mode=true**: Otomatik thread devre dışı, sadece manual endpoint ile veri alınır.
 
-### PF1 (TCP) Konfigürasyon
+**Configuration Modes:**
+- `enabled=false, manual-mode=false`: Auto-polling disabled, manual endpoint available
+- `enabled=true, manual-mode=false`: Auto-polling every `poll-interval` ms
+- `enabled=true, manual-mode=true`: Manual-only mode, no auto-polling
+
+#### PF1 (TCP Provider) Configuration
 ```yaml
 pf1:
   tcp:
     host: localhost
     port: 8081
-    enabled: false      # otomatik TCP bağlantısı
-```  
-- **enabled=false** → `PF1TcpProvider.startProvider()` connect() çağırmaz.
-- **enabled=true**  → Uygulama açılınca TCP socket açılır ve semboller subscribe edilir.
-
-### Konfigürasyon Dosyalarını Düzenleme
-
-Her modülün konfigürasyon dosyasına erişmek için:
-
-```
-coordinator/src/main/resources/application.yml
-platform-tcp/src/main/resources/application.yml
-platform-rest/src/main/resources/application.yml
-kafka-consumer/src/main/resources/application.yml
+    enabled: false  # auto-connect on startup
 ```
 
-### Otomatik Polling Nedir?
-Arka planda belirlenen `poll-interval` aralığında REST endpoint'e otomatik HTTP istek atmak ve güncel kurları almak demektir. Kodda:
-```java
-while(running) {
-  pollOnce();
-  Thread.sleep(pollInterval);
-}
+**TCP Modes:**
+- `enabled=false`: Manual connection via API
+- `enabled=true`: Auto-connect on application startup
+
+## 🔌 API Documentation
+
+### Coordinator Service (Port 8080)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/manual/pf2/{symbol}` | GET | Manual PF2 data fetch |
+| `/api/status` | GET | Service health status |
+
+### REST Platform Service (Port 8082)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/rates/{rateName}` | GET | Single forex rate |
+| `/api/rates/stream/{rateName}` | GET | SSE stream |
+
+### TCP Platform Service (Port 8081)
+
+**TCP Protocol Commands:**
 ```
-yapısı ile devam eder.
+subscribe|PF1_USDTRY    # Subscribe to USD/TRY rates
+unsubscribe|PF1_USDTRY  # Unsubscribe from rates
+```
 
-## Kullanım Kılavuzu
+## 🧪 Testing & Development
 
-### 1. Sistemin Çalıştığını Doğrulama
+### Manual Testing
 
-Tüm servisler başlatıldıktan sonra aşağıdaki kontroller yapılabilir:
+1. **TCP Client Test**
+   ```java
+   // TCPClient.java
+   import java.io.*;
+   import java.net.*;
+   
+   public class TCPClient {
+       public static void main(String[] args) {
+           try {
+               Socket socket = new Socket("localhost", 8081);
+               PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+               BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+               
+               // Subscribe to USD/TRY rates
+               out.println("subscribe|PF1_USDTRY");
+               
+               // Read incoming messages
+               String line;
+               while ((line = in.readLine()) != null) {
+                   System.out.println("Received: " + line);
+               }
+               socket.close();
+           } catch (Exception e) {
+               e.printStackTrace();
+           }
+       }
+   }
+   ```
+
+2. **Data Verification Commands**
+   ```bash
+   # Check raw data in Redis
+   docker exec -it redis redis-cli LRANGE raw:PF2_USDTRY 0 -1
+   
+   # Check computed data in Kafka
+   docker exec -it kafka kafka-console-consumer \
+     --topic computed:USDTRY \
+     --from-beginning \
+     --bootstrap-server localhost:9092
+   ```
+
+### Running Tests
 
 ```bash
-# Docker servisleri kontrolü
-docker-compose ps
+# Unit tests
+mvn test
 
-# Kafka'nın çalıştığını kontrol etme
-docker exec -it kafka kafka-topics --list --bootstrap-server localhost:9092
+# Integration tests
+mvn verify -Pintegration-tests
 
-# Redis'in çalıştığını kontrol etme
-docker exec -it redis redis-cli ping
+# Docker Compose test profile
+docker-compose -f docker-compose.yml -f docker-compose.test.yml up
 ```
 
-### 2. Manuel REST Sorgusu Yapma
+## 📊 Monitoring & Observability
 
-```bash
-# Coordinator servisine sorgu yapma
-curl http://localhost:8080/api/manual/pf2/PF2_USDTRY
-```
+### OpenSearch Dashboards
+- **URL**: http://localhost:5601
+- **Username**: admin
+- **Password**: admin
 
-### 3. TCP Bağlantısı İçin Test Client Örneği
+### Log Management
+- Application logs: `logs/` directory
+- Logstash pipelines: `logstash/pipeline/*.conf`
+- OpenSearch endpoint: http://localhost:9200
 
-TCP test için basit bir Java client örneği:
+### Data Monitoring
 
-```java
-// TCPClient.java
-import java.io.*;
-import java.net.*;
+**Supported Currency Pairs:**
+- USD/TRY (Turkish Lira)
+- EUR/USD (Euro/US Dollar)
+- GBP/USD (British Pound/US Dollar)
 
-public class TCPClient {
-    public static void main(String[] args) {
-        try {
-            Socket socket = new Socket("localhost", 8081);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            
-            // TCP protokolüne göre abone olma komutu
-            out.println("subscribe|PF1_USDTRY");
-            
-            // Gelen mesajları okuma
-            String line;
-            while ((line = in.readLine()) != null) {
-                System.out.println("Received: " + line);
-            }
-            
-            socket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
-```
+**Kafka Topics:**
+- `forex_topic`: Raw data stream
+- `computed:USDTRY`: Computed USD/TRY rates
+- `computed:EURUSD`: Computed EUR/USD rates
+- `computed:GBPUSD`: Computed GBP/USD rates
 
-### 4. Veri Kontrolü
+## 🛠️ Technology Stack
 
-```bash
-# Redis'ten raw veri okuma
-docker exec -it redis redis-cli LRANGE raw:PF2_USDTRY 0 -1
+### Backend Technologies
+- **Java 23**: Core programming language
+- **Spring Boot 3.4.2**: Application framework
+- **Maven 3.9.3**: Dependency management
+- **Groovy 3.0.9**: Dynamic calculations and scripting
 
-# Kafka'dan computed veri okuma
-docker exec -it kafka kafka-console-consumer --topic computed:USDTRY --from-beginning --bootstrap-server localhost:9092
-docker exec -it kafka kafka-console-consumer --topic computed:EURUSD --from-beginning --bootstrap-server localhost:9092
-docker exec -it kafka kafka-console-consumer --topic computed:GBPUSD --from-beginning --bootstrap-server localhost:9092
-```
+### Data & Messaging
+- **Apache Kafka (Confluent CP 7.x)**: Event streaming platform
+- **Redis 7.x**: In-memory data store
+- **PostgreSQL 15-alpine**: Relational database
+- **OpenSearch 2.x**: Search and analytics engine
 
-### 5. Dashboards ve İzleme
+### DevOps & Monitoring
+- **Docker & Docker Compose 2.4**: Containerization
+- **Logstash 7.x**: Log processing pipeline
+- **OpenSearch Dashboards**: Data visualization
 
-- OpenSearch Dashboards: `http://localhost:5601`
-  - Kullanıcı: admin
-  - Şifre: admin
+## 🔧 Troubleshooting
 
-## Sorun Giderme
+### Common Issues
 
-### Genel Sorunlar ve Çözümleri
-
-1. **Port Çakışması Sorunu**
+1. **Port Conflict Error**
    ```
    Error: Port 8080 is already in use
    ```
-   Çözüm: İlgili portu kullanan uygulamayı bulup durdurun veya konfigürasyon dosyasından portu değiştirin.
+   **Solution**: Kill the process using the port or change port in configuration
 
-2. **Docker Compose Bağlantı Hatası**
+2. **Kafka Connection Error**
    ```
    Connection refused to kafka:9092
    ```
-   Çözüm: Docker Compose'un tüm servisleri başlattığından emin olun ve ağ konfigürasyonunu kontrol edin.
+   **Solution**: Ensure all Docker services are running with `docker-compose ps`
 
-3. **Redis Bağlantı Sorunu**
+3. **Redis Connection Error**
    ```
    JedisConnectionException: Could not connect to redis:16379
    ```
-   Çözüm: Redis konteynerinin çalıştığını ve doğru port'un açık olduğunu kontrol edin.
+   **Solution**: Verify Redis container is running and port configuration
 
-4. **Java Sürüm Uyumsuzluğu**
+4. **Java Version Error**
    ```
    UnsupportedClassVersionError: ... requires Java 23
    ```
-   Çözüm: JDK 23 kurulu olduğundan ve `JAVA_HOME` değişkeninin doğru ayarlandığından emin olun.
+   **Solution**: Ensure JDK 23 is installed and `JAVA_HOME` is set correctly
 
-## API Referansı
+### Service Health Checks
 
-### platform-rest (PF2)
-- `GET /api/rates/{rateName}` → Tek seferlik döviz kuru getirir.
-- `GET /api/rates/stream/{rateName}` → SSE üzerinden sürekli güncelleme.
+```bash
+# Check all Docker services
+docker-compose ps
 
-### coordinator
-- `GET /api/manual/pf2/{rateName}` → Manuel polling.
-- `GET /api/status` → Servis durum bilgisi.
+# Check specific service logs
+docker-compose logs [service-name]
 
-## Teknoloji Yığını
+# Restart specific service
+docker-compose restart [service-name]
+```
 
-- Java 23, Spring Boot 3.4.2
-- Maven 3.9.3
-- Groovy 3.0.9 (dinamik hesaplamalar)
-- Kafka (Confluent CP 7.x)
-- Redis 7.x
-- PostgreSQL 15-alpine
-- OpenSearch 2.x / Dashboards
-- Logstash 7.x
-- Docker & Docker Compose 2.4
+## 🎯 Use Cases & Applications
 
-## Ek Kaynaklar
+This system is designed for:
 
-- [Kafka Dokümantasyonu](https://kafka.apache.org/documentation/)
-- [Redis Komutları](https://redis.io/commands)
-- [Spring Boot Referansı](https://docs.spring.io/spring-boot/docs/current/reference/html/)
-- [OpenSearch Kılavuzu](https://opensearch.org/docs/latest/)
+- **Financial Institutions**: Real-time forex rate processing
+- **Trading Platforms**: High-frequency trading data feeds
+- **Risk Management**: Currency exposure monitoring
+- **Academic Research**: Forex market analysis and simulation
+- **Fintech Applications**: Currency conversion services
 
-## İzleme ve Loglama
+## 🤝 Contributing
 
-- Loglar `logs/` klasörüne dökülür.
-- Logstash pipeline: `logstash/pipeline/*.conf`.
-- Elasticsearch/OpenSearch: `http://localhost:9200`
-- Dashboards: `http://localhost:5601`
+We welcome contributions! Please follow these steps:
 
-## Test ve QA
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- Unit test: `mvn test`
-- Integration test: `mvn verify -Pintegration-tests`
-- Docker Compose test profile: `docker-compose -f docker-compose.yml -f docker-compose.test.yml up`
+### Development Guidelines
 
-## Katkıda Bulunanlar
+- Follow Java coding standards
+- Write comprehensive unit tests
+- Update documentation for new features
+- Ensure Docker Compose compatibility
 
-- Mesut Taha Güven (@mtggamer)
+## 📄 License
 
-## Lisans
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
+## 👨‍💻 Author
+
+**Mesut Taha Güven** ([@mtggamer](https://github.com/mtggamer))
+
+## 🙏 Acknowledgments
+
+- Spring Boot community for excellent framework support
+- Apache Kafka for robust messaging capabilities
+- Redis community for high-performance caching solutions
+- OpenSearch project for powerful search and analytics
+
+## 📞 Support
+
+For questions, issues, or feature requests:
+
+1. **GitHub Issues**: [Create an issue](https://github.com/mtgsoftworks/Forex_Project/issues)
+2. **Documentation**: Check this README and inline code comments
+3. **Email**: Contact the maintainer for urgent matters
+
+---
+
+**Happy Trading! 💰📈**
