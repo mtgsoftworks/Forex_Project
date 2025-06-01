@@ -25,46 +25,86 @@ This project is a comprehensive **real-time forex exchange rate processing syste
 ## 🏗️ System Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐
-│   PF1 (TCP)     │    │   PF2 (REST)    │
-│   Platform      │    │   Platform      │
-└─────────┬───────┘    └─────────┬───────┘
-          │                      │
-          └──────────┬───────────┘
-                     │
-            ┌────────▼────────┐
-            │   Coordinator   │
-            │     Service     │
-            └─────────┬───────┘
-                      │
-         ┌────────────┼────────────┐
-         │            │            │
-    ┌────▼───┐   ┌────▼───┐   ┌────▼───┐
-    │ Redis  │   │ Kafka  │   │ Alarm  │
-    │(Raw)   │   │(Comp.) │   │Service │
-    └────────┘   └────┬───┘   └────────┘
-                      │
-            ┌─────────▼─────────┐
-            │  Kafka Consumer   │
-            └─────────┬─────────┘
-                      │
-         ┌────────────┼────────────┐
-         │            │            │
-    ┌────▼───┐   ┌────▼───┐   ┌────▼───┐
-    │PostgreSQL│  │OpenSearch│ │Logstash│
-    │        │   │          │ │        │
-    └────────┘   └──────────┘ └────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Data Storage Layer                             │
+│  ┌─────────────────┐              ┌─────────────────┐                   │
+│  │   Raw Rates     │              │ Calculated Rates│                   │
+│  │ (Hazelcast/Redis)│              │ (Hazelcast/Redis)│                   │
+│  └─────────┬───────┘              └─────────┬───────┘                   │
+└────────────┼────────────────────────────────┼───────────────────────────┘
+             │                                │
+             ▼                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Coordinator Service                             │
+│                                                                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │
+│  │ Subscriber 1│  │ Subscriber 2│  │ Subscriber n│  │  Kafka Producer │ │
+│  │    (TCP)    │  │   (REST)    │  │    (FIX)    │  │                 │ │
+│  └─────┬───────┘  └─────┬───────┘  └─────┬───────┘  └─────┬───────────┘ │
+│        │                │                │                │             │
+└────────┼────────────────┼────────────────┼────────────────┼─────────────┘
+         ▲                ▲                ▲                │
+         │                │                │                ▼
+┌────────┼───┐    ┌───────┼────┐   ┌───────┼────┐    ┌─────────────┐
+│Platform│   │    │Platform│    │   │Platform│    │    │   Logger    │
+│App 1   │TCP│    │App 2   │REST│   │App n   │ FIX│    │             │
+│        │   │    │        │ API│   │        │    │    └─────┬───────┘
+└────────────┘    └────────────┘   └────────────┘          │
+                                                           ▼
+                                                    ┌─────────────┐
+                                          ┌─────────┤    Log      │
+                                          │         │             │
+                                          │         └─────────────┘
+                                          │
+                                          ▼         ┌─────────────┐
+                                    ┌─────────────┐ │  Filebeat   │
+                                    │   Kafka     │ │             │
+                                    │             │ └─────┬───────┘
+                                    └─────┬───────┘       │
+                                          │               ▼
+                            ┌─────────────┼─────────────────────┐
+                            │             ▼                     │
+                    ┌───────────────┐              ┌───────────────┐
+                    │Kafka Consumer │              │ OpenSearch    │
+                    │ (Hibernate)   │              │               │
+                    └───────┬───────┘              │               │
+                            │                      │               │
+                            ▼                      └───────────────┘
+                    ┌───────────────┐              ┌───────────────┐
+                    │  PostgreSQL   │              │ OpenSearch    │
+                    │               │              │ (Logs)        │
+                    └───────────────┘              └───────────────┘
 ```
 
-### Data Flow
+### Data Flow Architecture
 
-1. **Raw Data Collection**: Data providers (PF1/PF2) collect forex rates
-2. **Coordination**: Coordinator service manages data flow and processing
-3. **Raw Storage**: Raw data stored in Redis lists (`raw:<rate>`)
-4. **Computation**: Dynamic calculations triggered and results published
-5. **Event Streaming**: Computed data sent to Kafka topics (`computed:<symbol>`)
-6. **Persistence**: Kafka consumer stores data in PostgreSQL and OpenSearch
-7. **Monitoring**: AlarmService monitors delays and sends email alerts
+1. **Multi-Protocol Data Ingestion**: 
+   - **Platform App 1**: TCP-based real-time streaming
+   - **Platform App 2**: REST API with polling mechanism  
+   - **Platform App n**: FIX protocol support for financial messaging
+
+2. **Centralized Coordination**:
+   - **Coordinator Service** acts as the central hub managing all data providers
+   - **Subscriber Components** handle different protocol types (TCP, REST, FIX)
+   - **Kafka Producer** streams processed data to message queues
+
+3. **Dual-Layer Caching**:
+   - **Raw Rates Storage**: Hazelcast/Redis for unprocessed forex data
+   - **Calculated Rates Storage**: Hazelcast/Redis for computed results
+
+4. **Event-Driven Processing**:
+   - **Kafka Message Bus** enables asynchronous data processing
+   - **Kafka Consumer (Hibernate)** persists data with ORM mapping
+   - **Parallel Processing** for high-throughput data streams
+
+5. **Comprehensive Logging & Monitoring**:
+   - **Logger Service** captures application events and metrics
+   - **Filebeat** ships logs to OpenSearch for analysis
+   - **Dual OpenSearch Instances** for data analytics and log aggregation
+
+6. **Enterprise Data Persistence**:
+   - **PostgreSQL** for ACID-compliant transactional data storage
+   - **OpenSearch** for full-text search and real-time analytics
 
 ## 🏛️ Module Structure
 
@@ -73,21 +113,23 @@ This project is a comprehensive **real-time forex exchange rate processing syste
 | Module | Description | Port | Technology Stack |
 |--------|-------------|------|------------------|
 | **common** | Shared models, DTOs, mappers, and JPA repositories | - | Spring Data JPA |
-| **platform-tcp** | TCP streaming data provider (PF1) | 8081 | Java TCP Sockets |
-| **platform-rest** | REST API + SSE streaming provider (PF2) | 8082 | Spring WebFlux, SSE |
-| **coordinator** | Central orchestration service | 8080 | Spring Boot, Groovy |
-| **kafka-consumer** | Data persistence service | - | Kafka Streams |
-| **logstash** | Log aggregation and processing | - | Logstash Pipeline |
+| **platform-tcp** | TCP streaming data provider with socket connections | 8081 | Java NIO, TCP Sockets |
+| **platform-rest** | REST API + SSE streaming provider | 8082 | Spring WebFlux, SSE |
+| **platform-fix** | FIX protocol financial messaging provider | 8083 | QuickFIX/J |
+| **coordinator** | Central orchestration with multi-protocol subscribers | 8080 | Spring Boot, Groovy |
+| **kafka-consumer** | Data persistence service with Hibernate ORM | - | Kafka Streams, Hibernate |
+| **logger** | Centralized logging and monitoring service | - | Logback, SLF4J |
 
 ### Infrastructure Services
 
 | Service | Description | Port | Purpose |
 |---------|-------------|------|---------|
 | **Kafka** | Message streaming platform | 9092 | Event-driven architecture |
-| **Redis** | In-memory data store | 6379 | Raw data caching |
-| **PostgreSQL** | Relational database | 5432 | Data persistence |
-| **OpenSearch** | Search and analytics engine | 9200 | Data analytics |
-| **OpenSearch Dashboards** | Visualization platform | 5601 | Data visualization |
+| **Hazelcast/Redis** | Distributed caching layer | 6379/5701 | Raw & calculated rate caching |
+| **PostgreSQL** | Relational database | 5432 | Transactional data persistence |
+| **OpenSearch (Data)** | Search and analytics engine | 9200 | Financial data analytics |
+| **OpenSearch (Logs)** | Log search and analysis | 9201 | Application log analytics |
+| **Filebeat** | Log shipper | - | Log collection and forwarding |
 
 ## 🚀 Quick Start
 
@@ -405,4 +447,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - Apache Kafka for robust messaging capabilities
 - Redis community for high-performance caching solutions
 - OpenSearch project for powerful search and analytics
-
