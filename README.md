@@ -381,7 +381,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 👨‍💻 Author
 
-**Mesut Taha Güven** ([@mtggamer](https://github.com/mtgsoftworks))
+**Mesut Taha Güven** ([@mtgsoftworks](https://github.com/mtgsoftworks))
 
 ## 🙏 Acknowledgments
 
@@ -389,3 +389,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - Apache Kafka for robust messaging capabilities
 - Redis community for high-performance caching solutions
 - OpenSearch project for powerful search and analytics
+
